@@ -175,7 +175,7 @@ return <- phq_all_final %>%
 no_return / return
 ```
 
-  There seems to be a sharp increase in GAD7 scores once a patient surpasses assessments in the mid 30s. This is logical since a higher GAD7 score would require more assessments, but it seems that once a patients passes 35 assessments diminishing returns start to begin. One thing to note about this analysis is that on 8 out of 15,502 patients had over 30 assessments which heavily skews the graph.
+  There seems to be a sharp increase in GAD7 scores once a patient surpasses assessments in the mid 30s. This is logical since a higher GAD7 score would require more assessments, but it seems that once a patients passes 35 assessments diminishing returns start to begin. One thing to note about this analysis is that only 8 out of 15,502 patients had over 30 assessments which heavily skews the Mean/Median GAD7 Score graphs.
 
 ```{r}
 total_assessments %>% 

@@ -1,7 +1,7 @@
 NeuroFlow Data Challenge
 ================
 Ty Painter
-Thu May 20 20:01:15 2021
+Fri May 21 10:01:59 2021
 
 ``` r
 # load packages
@@ -56,7 +56,7 @@ head(phq_all_final)
     ## 6 2019-09-17 14:08:49      17028 gad7  2019-06-03 14:24:06      6
 
 ``` r
-summary(phq_all_final)
+summary(phq_all_final) # check variable values
 ```
 
     ##       date                       patient_id        type          
@@ -79,7 +79,7 @@ summary(phq_all_final)
 ## Categorize Scores into Severity Label
 
 ``` r
-phq_all_final$severity <- cut(phq_all_final$score,c(-1,5,10,15,21))
+phq_all_final$severity <- cut(phq_all_final$score,c(-1,5,10,15,21)) # set ranges for severity labels
 levels(phq_all_final$severity) = c("Low to Minimal", "Mild", "Moderate", "Severe")
 head(phq_all_final)
 ```
@@ -94,7 +94,7 @@ head(phq_all_final)
     ## 5 2019-12-02 20:56:55      14338 gad7  2019-06-03 13:32:30      9 Mild          
     ## 6 2019-09-17 14:08:49      17028 gad7  2019-06-03 14:24:06      6 Mild
 
-### Display Raw Counts of Severity Labels
+### Raw Counts of Severity Labels
 
 ``` r
 ggplot(phq_all_final, aes(severity)) +
@@ -112,7 +112,7 @@ ggplot(phq_all_final, aes(severity)) +
 
 ![](part1_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
-### Display Proportions of Severity Labels
+### Proportions of Severity Labels
 
 ``` r
 ggplot(phq_all_final, aes(x = severity)) +  
@@ -131,28 +131,28 @@ ggplot(phq_all_final, aes(x = severity)) +
 ## Evaluate Progress Over Time
 
 ``` r
-# create a visit number column for each patient
-visit_num = rep(NA,nrow(phq_all_final))
-visit_num[1] = 1
+# create a assessment number column for each patient
+assessment_num = rep(NA,nrow(phq_all_final))
+assessment_num[1] = 1 # initiate first patient 
 for (j in 2:nrow(phq_all_final)) {
   i = j-1
   if (phq_all_final$patient_id[i] == phq_all_final$patient_id[j]) {
-    visit_num[j] = visit_num[i] + 1
+    assessment_num[j] = assessment_num[i] + 1 # if same patient, add to assessment total
   } else {
-    visit_num[j] = 1
+    assessment_num[j] = 1 # if different patient, start new count
   }
 }
 
 phq_all_final <- phq_all_final %>% 
-  mutate(visit_num = visit_num)
+  mutate(assessment_num = assessment_num) # add assessment number to original df
 ```
 
-### Raw Count of Assessments per Patient
+### Distribution of Assessments per Patient
 
 ``` r
 phq_all_final %>% 
   group_by(patient_id) %>% 
-  summarize(total_assessments = max(visit_num)) %>% 
+  summarize(total_assessments = max(assessment_num)) %>% # take the largest assessment num of each patient for total assessments for each patient
   ggplot(aes(total_assessments)) +
   geom_histogram(stat="count") +
     labs(
@@ -172,9 +172,9 @@ phq_all_final %>%
 ``` r
 phq_all_final %>% 
   group_by(patient_id) %>% 
-  summarize(total_assessments = max(visit_num)) %>% 
+  summarize(total_assessments = max(assessment_num)) %>% # take the largest assessment num of each patient for total assessments for each patient
   ggplot(aes(x = total_assessments)) +  
-  geom_bar(aes(y = (..count..)/sum(..count..))) +
+  geom_bar(aes(y = (..count..)/sum(..count..))) + # calculate proportion
   labs(
     title = "Proportion of Assessments per Patients",
     x = "# of Assessments",
@@ -189,12 +189,12 @@ phq_all_final %>%
 
 ``` r
 phq_all_final %>% 
-  group_by(visit_num) %>% 
-  summarize(avg_score = mean(score)) %>% 
-  ggplot(aes(x = visit_num, y = avg_score)) +
+  group_by(assessment_num) %>% 
+  summarize(avg_score = mean(score)) %>% # avg score per # of assessments
+  ggplot(aes(x = assessment_num, y = avg_score)) +
   geom_line() +
   geom_point() +
-  geom_hline(yintercept=0, linetype="dashed", col="red") +
+  geom_hline(yintercept=0, linetype="dashed", col="red") + # add severity labels
   geom_text(aes(6,0,label="Low to Minimal", vjust=-3)) +
   geom_hline(yintercept=6, linetype="dashed", col="red") +
   geom_text(aes(5,6,label="Mild", vjust=-3)) +
@@ -214,12 +214,12 @@ phq_all_final %>%
 
 ``` r
 phq_all_final %>% 
-  group_by(visit_num) %>% 
+  group_by(assessment_num) %>% 
   summarize(avg_score = median(score)) %>% 
-  ggplot(aes(x = visit_num, y = avg_score)) +
+  ggplot(aes(x = assessment_num, y = avg_score)) + # avg score per # of assessments
   geom_line() +
   geom_point() +
-  geom_hline(yintercept=0, linetype="dashed", col="red") +
+  geom_hline(yintercept=0, linetype="dashed", col="red") + # add severity labels
   geom_text(aes(6,0,label="Low to Minimal", vjust=-1)) +
   geom_hline(yintercept=6, linetype="dashed", col="red") +
   geom_text(aes(5,6,label="Mild", vjust=-3)) +
@@ -248,22 +248,22 @@ assessment although a score of 10+ indicates further evaluation.
 ``` r
 total_assessments <- phq_all_final %>% 
   group_by(patient_id) %>% 
-  summarize(total_assessments = max(visit_num)) 
-quantile(total_assessments$total_assessments, .88)
+  summarize(total_assessments = max(assessment_num)) 
+quantile(total_assessments$total_assessments, .88) # find 88th quantile
 ```
 
     ## 88% 
     ##   6
 
 ``` r
-phq_all_final <- left_join(phq_all_final, total_assessments, by = "patient_id") 
+phq_all_final <- left_join(phq_all_final, total_assessments, by = "patient_id") # merge total assessments for each patient to original df
 
 no_return <- phq_all_final %>% 
-  filter(total_assessments == 1 & score >= 10) %>% 
+  filter(total_assessments == 1 & score >= 10) %>% # patients that scored 10+ on initial assessment and did not return
   nrow()
 
 return <- phq_all_final %>% 
-  filter(visit_num == 1 & score >= 10) %>% 
+  filter(assessment_num == 1 & score >= 10) %>% # patients that scored 10+ on initial assessment 
   nrow()
 
 no_return / return
@@ -275,12 +275,13 @@ There seems to be a sharp increase in GAD7 scores once a patient
 surpasses assessments in the mid 30s. This is logical since a higher
 GAD7 score would require more assessments, but it seems that once a
 patients passes 35 assessments diminishing returns start to begin. One
-thing to note about this analysis is that on 8 out of 15,502 patients
-had over 30 assessments which heavily skews the graph.
+thing to note about this analysis is that only 8 out of 15,502 patients
+had over 30 assessments which heavily skews the Mean/Median GAD7 Score
+graphs.
 
 ``` r
 total_assessments %>% 
-  filter(total_assessments > 30) %>% 
+  filter(total_assessments > 30) %>% # number of patients with over 30 assessments
   nrow()
 ```
 
