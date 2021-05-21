@@ -1,7 +1,7 @@
 NeuroFlow Data Challenge
 ================
 Ty Painter
-Thu May 20 12:20:39 2021
+Thu May 20 20:01:15 2021
 
 ``` r
 # load packages
@@ -147,17 +147,17 @@ phq_all_final <- phq_all_final %>%
   mutate(visit_num = visit_num)
 ```
 
-### Raw Count of Visits per Patient
+### Raw Count of Assessments per Patient
 
 ``` r
 phq_all_final %>% 
   group_by(patient_id) %>% 
-  summarize(total_visits = max(visit_num)) %>% 
-  ggplot(aes(total_visits)) +
+  summarize(total_assessments = max(visit_num)) %>% 
+  ggplot(aes(total_assessments)) +
   geom_histogram(stat="count") +
     labs(
-    title = "Distribution of Number of Visits per Patient",
-    x = "# of Visits",
+    title = "Distribution of Number of Assessments per Patient",
+    x = "# of Assessments",
     y = "# of Patients"
   ) +
   scale_y_continuous(labels = function(y){paste0(y/1000, 'K')}) 
@@ -167,17 +167,17 @@ phq_all_final %>%
 
 ![](part1_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
-### Proportions of Visits per Patient
+### Proportions of Assessments per Patient
 
 ``` r
 phq_all_final %>% 
   group_by(patient_id) %>% 
-  summarize(total_visits = max(visit_num)) %>% 
-  ggplot(aes(x = total_visits)) +  
+  summarize(total_assessments = max(visit_num)) %>% 
+  ggplot(aes(x = total_assessments)) +  
   geom_bar(aes(y = (..count..)/sum(..count..))) +
   labs(
-    title = "Proportion of Visits per Patients",
-    x = "# of Visits",
+    title = "Proportion of Assessments per Patients",
+    x = "# of Assessments",
     y = "% of Patients"
   ) +
   scale_y_continuous(labels = function(y){paste0(y*100, '%')}) 
@@ -185,7 +185,7 @@ phq_all_final %>%
 
 ![](part1_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
-### Average GAD7 Scores per Number of Patient Visits
+### Average GAD7 Scores per Number of Patient Assessments
 
 ``` r
 phq_all_final %>% 
@@ -203,14 +203,14 @@ phq_all_final %>%
   geom_hline(yintercept=16, linetype="dashed", col="red") +
   geom_text(aes(5,16,label="Severe", vjust=-3)) +
   labs(
-    title = "Average GAD7 Scores per Number of Patient Visits",
-    x = "# of Visits",
+    title = "Average GAD7 Scores per Number of Patient Assessments",
+    x = "# of Assessments",
     y = "GAD7 Score")
 ```
 
 ![](part1_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
-### Median GAD7 Score per Number of Patient Visits
+### Median GAD7 Score per Number of Patient Assessments
 
 ``` r
 phq_all_final %>% 
@@ -228,8 +228,8 @@ phq_all_final %>%
   geom_hline(yintercept=16, linetype="dashed", col="red") +
   geom_text(aes(5,16,label="Severe", vjust=-3)) +
   labs(
-    title = "Median GAD7 Scores per Number of Patient Visits",
-    x = "# of Visits",
+    title = "Median GAD7 Scores per Number of Patient Assessments",
+    x = "# of Assessments",
     y = "GAD7 Score")
 ```
 
@@ -239,24 +239,52 @@ phq_all_final %>%
 
 **What insights can you draw?**
 
-The main insight I drew from my analysis is the patient
-visits/assessments seem to be working because 90% of patients are making
-only 7 visits or less and both the median and average GAD7 scores are in
-the Low to Minimal risk range. However, there seems to be a sharp
-increase in GAD7 scores around 40 visits. This is logical since a higher
-GAD7 score would require more visits which skews the graph, but it seems
-that once a patients goes over 40 visits diminishing returns start to
-begin.
+It seems that 3-6 assessments tend to result in the lowest CAD7 scores
+which is good since 88% of patients participate in 6 assessments or
+less. However, there is cause for concern where 34% of patients took an
+initial assessment and scored 10 or greater but did not take another
+assessment although a score of 10+ indicates further evaluation.
 
 ``` r
-total_visits <- phq_all_final %>% 
+total_assessments <- phq_all_final %>% 
   group_by(patient_id) %>% 
-  summarize(total_visits = max(visit_num)) 
-quantile(total_visits$total_visits, .9)
+  summarize(total_assessments = max(visit_num)) 
+quantile(total_assessments$total_assessments, .88)
 ```
 
-    ## 90% 
-    ##   7
+    ## 88% 
+    ##   6
+
+``` r
+phq_all_final <- left_join(phq_all_final, total_assessments, by = "patient_id") 
+
+no_return <- phq_all_final %>% 
+  filter(total_assessments == 1 & score >= 10) %>% 
+  nrow()
+
+return <- phq_all_final %>% 
+  filter(visit_num == 1 & score >= 10) %>% 
+  nrow()
+
+no_return / return
+```
+
+    ## [1] 0.3419453
+
+There seems to be a sharp increase in GAD7 scores once a patient
+surpasses assessments in the mid 30s. This is logical since a higher
+GAD7 score would require more assessments, but it seems that once a
+patients passes 35 assessments diminishing returns start to begin. One
+thing to note about this analysis is that on 8 out of 15,502 patients
+had over 30 assessments which heavily skews the graph.
+
+``` r
+total_assessments %>% 
+  filter(total_assessments > 30) %>% 
+  nrow()
+```
+
+    ## [1] 8
 
 **What assumptions have you made about the data?**
 
@@ -270,7 +298,7 @@ to collect?**
 
 Additional pieces of information I wish I had was the type of diagnosis
 or treatment that each patient was associated with. I think this would
-allow for a better evaluation based on the diagnosis/treatment. Another
+allow for a better analysis based on the diagnosis/treatment. Another
 piece of information I would like to look at would be the patient
 responses to each specific question of the GAD7. Again, I think this
 could provide further insight into particular questions that relate to

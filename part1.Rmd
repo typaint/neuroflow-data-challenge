@@ -20,18 +20,18 @@ head(phq_all_final)
 ```
 
 ```{r}
-summary(phq_all_final)
+summary(phq_all_final) # check variable values
 ```
 
 # Exploratory Data Analysis
 ## Categorize Scores into Severity Label
 
 ```{r}
-phq_all_final$severity <- cut(phq_all_final$score,c(-1,5,10,15,21))
+phq_all_final$severity <- cut(phq_all_final$score,c(-1,5,10,15,21)) # set ranges for severity labels
 levels(phq_all_final$severity) = c("Low to Minimal", "Mild", "Moderate", "Severe")
 head(phq_all_final)
 ```
-### Display Raw Counts of Severity Labels
+### Raw Counts of Severity Labels
 ```{r}
 ggplot(phq_all_final, aes(severity)) +
   geom_histogram(stat="count") +
@@ -44,7 +44,7 @@ ggplot(phq_all_final, aes(severity)) +
   scale_y_continuous(labels = function(y){paste0(y/1000, 'K')}) 
 ```
 
-### Display Proportions of Severity Labels
+### Proportions of Severity Labels
 ```{r}
 ggplot(phq_all_final, aes(x = severity)) +  
     geom_bar(aes(y = (..count..)/sum(..count..))) +
@@ -59,61 +59,61 @@ ggplot(phq_all_final, aes(x = severity)) +
 
 ## Evaluate Progress Over Time
 ```{r}
-# create a visit number column for each patient
-visit_num = rep(NA,nrow(phq_all_final))
-visit_num[1] = 1
+# create a assessment number column for each patient
+assessment_num = rep(NA,nrow(phq_all_final))
+assessment_num[1] = 1 # initiate first patient 
 for (j in 2:nrow(phq_all_final)) {
   i = j-1
   if (phq_all_final$patient_id[i] == phq_all_final$patient_id[j]) {
-    visit_num[j] = visit_num[i] + 1
+    assessment_num[j] = assessment_num[i] + 1 # if same patient, add to assessment total
   } else {
-    visit_num[j] = 1
+    assessment_num[j] = 1 # if different patient, start new count
   }
 }
 
 phq_all_final <- phq_all_final %>% 
-  mutate(visit_num = visit_num)
+  mutate(assessment_num = assessment_num) # add assessment number to original df
 ```
 
-### Raw Count of Visits per Patient
+### Distribution of Assessments per Patient
 ```{r}
 phq_all_final %>% 
   group_by(patient_id) %>% 
-  summarize(total_visits = max(visit_num)) %>% 
-  ggplot(aes(total_visits)) +
+  summarize(total_assessments = max(assessment_num)) %>% # take the largest assessment num of each patient for total assessments for each patient
+  ggplot(aes(total_assessments)) +
   geom_histogram(stat="count") +
     labs(
-    title = "Distribution of Number of Visits per Patient",
-    x = "# of Visits",
+    title = "Distribution of Number of Assessments per Patient",
+    x = "# of Assessments",
     y = "# of Patients"
   ) +
   scale_y_continuous(labels = function(y){paste0(y/1000, 'K')}) 
 ```
 
-### Proportions of Visits per Patient 
+### Proportions of Assessments per Patient 
 ```{r}
 phq_all_final %>% 
   group_by(patient_id) %>% 
-  summarize(total_visits = max(visit_num)) %>% 
-  ggplot(aes(x = total_visits)) +  
-  geom_bar(aes(y = (..count..)/sum(..count..))) +
+  summarize(total_assessments = max(assessment_num)) %>% # take the largest assessment num of each patient for total assessments for each patient
+  ggplot(aes(x = total_assessments)) +  
+  geom_bar(aes(y = (..count..)/sum(..count..))) + # calculate proportion
   labs(
-    title = "Proportion of Visits per Patients",
-    x = "# of Visits",
+    title = "Proportion of Assessments per Patients",
+    x = "# of Assessments",
     y = "% of Patients"
   ) +
   scale_y_continuous(labels = function(y){paste0(y*100, '%')}) 
 ```
 
-### Average GAD7 Scores per Number of Patient Visits
+### Average GAD7 Scores per Number of Patient Assessments
 ```{r}
 phq_all_final %>% 
-  group_by(visit_num) %>% 
-  summarize(avg_score = mean(score)) %>% 
-  ggplot(aes(x = visit_num, y = avg_score)) +
+  group_by(assessment_num) %>% 
+  summarize(avg_score = mean(score)) %>% # avg score per # of assessments
+  ggplot(aes(x = assessment_num, y = avg_score)) +
   geom_line() +
   geom_point() +
-  geom_hline(yintercept=0, linetype="dashed", col="red") +
+  geom_hline(yintercept=0, linetype="dashed", col="red") + # add severity labels
   geom_text(aes(6,0,label="Low to Minimal", vjust=-3)) +
   geom_hline(yintercept=6, linetype="dashed", col="red") +
   geom_text(aes(5,6,label="Mild", vjust=-3)) +
@@ -122,20 +122,20 @@ phq_all_final %>%
   geom_hline(yintercept=16, linetype="dashed", col="red") +
   geom_text(aes(5,16,label="Severe", vjust=-3)) +
   labs(
-    title = "Average GAD7 Scores per Number of Patient Visits",
-    x = "# of Visits",
+    title = "Average GAD7 Scores per Number of Patient Assessments",
+    x = "# of Assessments",
     y = "GAD7 Score")
 ```
 
-### Median GAD7 Score per Number of Patient Visits
+### Median GAD7 Score per Number of Patient Assessments
 ```{r}
 phq_all_final %>% 
-  group_by(visit_num) %>% 
+  group_by(assessment_num) %>% 
   summarize(avg_score = median(score)) %>% 
-  ggplot(aes(x = visit_num, y = avg_score)) +
+  ggplot(aes(x = assessment_num, y = avg_score)) + # avg score per # of assessments
   geom_line() +
   geom_point() +
-  geom_hline(yintercept=0, linetype="dashed", col="red") +
+  geom_hline(yintercept=0, linetype="dashed", col="red") + # add severity labels
   geom_text(aes(6,0,label="Low to Minimal", vjust=-1)) +
   geom_hline(yintercept=6, linetype="dashed", col="red") +
   geom_text(aes(5,6,label="Mild", vjust=-3)) +
@@ -144,20 +144,43 @@ phq_all_final %>%
   geom_hline(yintercept=16, linetype="dashed", col="red") +
   geom_text(aes(5,16,label="Severe", vjust=-3)) +
   labs(
-    title = "Median GAD7 Scores per Number of Patient Visits",
-    x = "# of Visits",
+    title = "Median GAD7 Scores per Number of Patient Assessments",
+    x = "# of Assessments",
     y = "GAD7 Score")
 ```
 
 # Final Analysis
 **What insights can you draw?**
 
-The main insight I drew from my analysis is the patient visits/assessments seem to be working because 90% of patients are making only 7 visits or less and both the median and average GAD7 scores are in the Low to Minimal risk range. However, there seems to be a sharp increase in GAD7 scores around 40 visits. This is logical since a higher GAD7 score would require more visits which skews the graph, but it seems that once a patients goes over 40 visits diminishing returns start to begin.
+  It seems that 3-6 assessments tend to result in the lowest CAD7 scores which is good since 88% of patients participate in 6 assessments or less. However, there is cause for concern where 34% of patients took an initial assessment and scored 10 or greater but did not take another assessment although a score of 10+ indicates further evaluation. 
+
 ```{r}
-total_visits <- phq_all_final %>% 
+total_assessments <- phq_all_final %>% 
   group_by(patient_id) %>% 
-  summarize(total_visits = max(visit_num)) 
-quantile(total_visits$total_visits, .9)
+  summarize(total_assessments = max(assessment_num)) 
+quantile(total_assessments$total_assessments, .88) # find 88th quantile
+```
+
+```{r}
+phq_all_final <- left_join(phq_all_final, total_assessments, by = "patient_id") # merge total assessments for each patient to original df
+
+no_return <- phq_all_final %>% 
+  filter(total_assessments == 1 & score >= 10) %>% # patients that scored 10+ on initial assessment and did not return
+  nrow()
+
+return <- phq_all_final %>% 
+  filter(assessment_num == 1 & score >= 10) %>% # patients that scored 10+ on initial assessment 
+  nrow()
+
+no_return / return
+```
+
+  There seems to be a sharp increase in GAD7 scores once a patient surpasses assessments in the mid 30s. This is logical since a higher GAD7 score would require more assessments, but it seems that once a patients passes 35 assessments diminishing returns start to begin. One thing to note about this analysis is that on 8 out of 15,502 patients had over 30 assessments which heavily skews the graph.
+
+```{r}
+total_assessments %>% 
+  filter(total_assessments > 30) %>% # number of patients with over 30 assessments
+  nrow()
 ```
 
 **What assumptions have you made about the data?**
@@ -166,4 +189,7 @@ I did not make many assumptions about the data because everything was pretty sel
 
 **What are 2-3 additional pieces of information that would be important to collect?**
 
-Additional pieces of information I wish I had was the type of diagnosis or treatment that each patient was associated with. I think this would allow for a better evaluation based on the diagnosis/treatment. Another piece of information I would like to look at would be the patient responses to each specific question of the GAD7. Again, I think this could provide further insight into particular questions that relate to patient struggles. Also, if I had more time to complete my analysis I would have liked to look into the length of time between patient assessments and how that affects their GAD7 scores.
+Additional pieces of information I wish I had was the type of diagnosis or treatment that each patient was associated with. I think this would allow for a better analysis based on the diagnosis/treatment. Another piece of information I would like to look at would be the patient responses to each specific question of the GAD7. Again, I think this could provide further insight into particular questions that relate to patient struggles. Also, if I had more time to complete my analysis I would have liked to look into the length of time between patient assessments and how that affects their GAD7 scores.
+
+
+
